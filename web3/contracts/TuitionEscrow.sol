@@ -118,7 +118,7 @@ contract TuitionEscrow {
 
     function refund(uint id) external {
         Payment storage p = payments[id];
-        require(msg.sender == p.payer, "Not payer");
+        require(msg.sender == admin, "Not admin");
         require(!p.released, "Already released");
 
         p.status = PaymentStatus.Refunded;
