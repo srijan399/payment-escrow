@@ -1,3 +1,5 @@
+![Edupay](./hero.png)
+
 # EduPay - Cross-Border Stablecoin Payment System
 
 A decentralized application (dApp) for cross-border tuition fee and donation payments using ERC20 stablecoins. The system uses an escrow mechanism where payments are held in a smart contract until approved and released by an admin.
