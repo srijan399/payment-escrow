@@ -51,17 +51,17 @@ export default function Providers(props: {
     <WagmiProvider config={config} initialState={props.initialState}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
-          initialChain={1320}
-          theme={selectedTheme}
+          initialChain={11155111}
+          // theme={selectedTheme}
           coolMode
           modalSize="wide"
-          // theme={darkTheme({
-          //   accentColor: "#7b3fe4",
-          //   accentColorForeground: "white",
-          //   borderRadius: "small",
-          //   fontStack: "system",
-          //   overlayBlur: "small",
-          // })}
+          theme={darkTheme({
+            accentColor: "#1c632f",
+            accentColorForeground: "white",
+            borderRadius: "small",
+            fontStack: "system",
+            overlayBlur: "small",
+          })}
         >
           {props.children}
         </RainbowKitProvider>

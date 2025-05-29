@@ -190,6 +190,11 @@ export const contractABI = [
             name: "invoiceRef",
             type: "string",
           },
+          {
+            internalType: "enum TuitionEscrow.PaymentStatus",
+            name: "status",
+            type: "uint8",
+          },
         ],
         internalType: "struct TuitionEscrow.Payment",
         name: "",
@@ -234,6 +239,11 @@ export const contractABI = [
             internalType: "string",
             name: "invoiceRef",
             type: "string",
+          },
+          {
+            internalType: "enum TuitionEscrow.PaymentStatus",
+            name: "status",
+            type: "uint8",
           },
         ],
         internalType: "struct TuitionEscrow.Payment[]",
@@ -344,6 +354,11 @@ export const contractABI = [
         name: "invoiceRef",
         type: "string",
       },
+      {
+        internalType: "enum TuitionEscrow.PaymentStatus",
+        name: "status",
+        type: "uint8",
+      },
     ],
     stateMutability: "view",
     type: "function",
@@ -394,7 +409,7 @@ export const contractABI = [
   },
 ];
 
-export const contractAddress = "0xd270d8f9cDddb378ed8774CfafCdbB5C9c7E45C8";
+export const contractAddress = "0x3E4c1Df312B7dF41a2224fE1C31eEaB41a1ECDE0";
 
 export const stablecoinAddress = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 export const stablecoinABI = [

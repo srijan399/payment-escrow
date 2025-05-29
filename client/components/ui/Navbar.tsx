@@ -24,9 +24,6 @@ export const Navbar = () => {
       </a>
       <div className="gap-x-4 flex items-center flex-wrap">
         <ConnectButton chainStatus="none" accountStatus="avatar" />
-        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          Get Started
-        </Button>
       </div>
     </nav>
   );

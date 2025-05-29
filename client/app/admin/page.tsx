@@ -63,7 +63,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { admin, contractABI, contractAddress } from "../abi";
 
-// Contract Payment structure
+enum PaymentStatus {
+  Staged = 0, // Contract returns 0 for staged
+  Released = 1, // Contract returns 1 for released
+  Refunded = 2, // Contract returns 2 for refunded
+}
+
 interface ContractPayment {
   id: bigint;
   payer: string;
@@ -71,21 +76,15 @@ interface ContractPayment {
   institution: string;
   released: boolean;
   invoiceRef: string;
-}
-
-// UI Payment structure with additional metadata
-interface UIPayment extends ContractPayment {
-  createdAt?: Date;
-  transactionHash?: string;
+  status: number; // This is what the contract actually returns
 }
 
 export default function AdminDashboard() {
   const { address, isConnected } = useAccount();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedPayment, setSelectedPayment] = useState<UIPayment | null>(
-    null
-  );
+  const [selectedPayment, setSelectedPayment] =
+    useState<ContractPayment | null>(null);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<"release" | "refund" | null>(
     null
@@ -135,12 +134,7 @@ export default function AdminDashboard() {
     });
 
   // Convert contract payments to UI format
-  const payments: UIPayment[] = contractPayments
-    ? contractPayments.map((payment) => ({
-        ...payment,
-        createdAt: new Date(), // You might want to get this from events
-      }))
-    : [];
+  const payments: ContractPayment[] = contractPayments || [];
 
   // Filter payments based on search and status
   const filteredPayments = payments.filter((payment) => {
@@ -152,8 +146,11 @@ export default function AdminDashboard() {
 
     const matchesStatus =
       statusFilter === "all" ||
-      (statusFilter === "pending" && !payment.released) ||
-      (statusFilter === "completed" && payment.released);
+      (statusFilter === "staged" && payment.status === PaymentStatus.Staged) ||
+      (statusFilter === "released" &&
+        payment.status === PaymentStatus.Released) ||
+      (statusFilter === "refunded" &&
+        payment.status === PaymentStatus.Refunded);
 
     return matchesSearch && matchesStatus;
   });
@@ -169,21 +166,35 @@ export default function AdminDashboard() {
     }
   }, [isReleaseSuccess, isRefundSuccess, refetchPayments]);
 
-  const getStatusBadge = (released: boolean) => {
-    if (released) {
-      return (
-        <Badge variant="secondary" className="bg-green-100 text-green-800">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Released
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-          <Clock className="w-3 h-3 mr-1" />
-          Pending
-        </Badge>
-      );
+  const getStatusBadge = (status: number) => {
+    switch (status) {
+      case PaymentStatus.Staged:
+        return (
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            <Clock className="w-3 h-3 mr-1" />
+            Staged
+          </Badge>
+        );
+      case PaymentStatus.Released:
+        return (
+          <Badge variant="secondary" className="bg-green-100 text-green-800">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Released
+          </Badge>
+        );
+      case PaymentStatus.Refunded:
+        return (
+          <Badge variant="secondary" className="bg-red-100 text-red-800">
+            <XCircle className="w-3 h-3 mr-1" />
+            Refunded
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+            Unknown
+          </Badge>
+        );
     }
   };
 
@@ -220,7 +231,7 @@ export default function AdminDashboard() {
   };
 
   const openActionDialog = (
-    payment: UIPayment,
+    payment: ContractPayment,
     action: "release" | "refund"
   ) => {
     setSelectedPayment(payment);
@@ -228,12 +239,19 @@ export default function AdminDashboard() {
     setIsActionDialogOpen(true);
   };
 
-  // Calculate statistics
-  const pendingCount = payments.filter((p) => !p.released).length;
-  const completedCount = payments.filter((p) => p.released).length;
+  // Calculate statistics - using status instead of paymentStatus
+  const stagedCount = payments.filter(
+    (p) => p.status === PaymentStatus.Staged
+  ).length;
+  const completedCount = payments.filter(
+    (p) => p.status === PaymentStatus.Released
+  ).length;
+  const refundedCount = payments.filter(
+    (p) => p.status === PaymentStatus.Refunded
+  ).length;
   const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-  const pendingAmount = payments
-    .filter((p) => !p.released)
+  const stagedAmount = payments
+    .filter((p) => p.status === PaymentStatus.Staged)
     .reduce((sum, p) => sum + Number(p.amount), 0);
 
   // Format amounts (assuming 6 decimals for USDC)
@@ -324,15 +342,15 @@ export default function AdminDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Pending Payments
+                Staged Payments
               </CardTitle>
               <Clock className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">
-                {pendingCount}
+                {stagedCount}
               </div>
-              <p className="text-xs text-slate-500">Awaiting release</p>
+              <p className="text-xs text-slate-500">Awaiting action</p>
             </CardContent>
           </Card>
 
@@ -352,15 +370,15 @@ export default function AdminDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Pending Amount
+                Staged Amount
               </CardTitle>
               <DollarSign className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-emerald-600">
-                ${(pendingAmount / 1e6).toLocaleString()}
+                ${(stagedAmount / 1e6).toLocaleString()}
               </div>
-              <p className="text-xs text-slate-500">USDC awaiting release</p>
+              <p className="text-xs text-slate-500">USDC awaiting action</p>
             </CardContent>
           </Card>
 
@@ -406,8 +424,9 @@ export default function AdminDashboard() {
                 </SelectTrigger>
                 <SelectContent className="min-w-[12rem]">
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="completed">Released</SelectItem>
+                  <SelectItem value="staged">Staged</SelectItem>
+                  <SelectItem value="released">Released</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -459,13 +478,13 @@ export default function AdminDashboard() {
                         </div>
                         <div className="text-xs text-slate-500">USDC</div>
                       </TableCell>
-                      <TableCell>{getStatusBadge(payment.released)}</TableCell>
+                      <TableCell>{getStatusBadge(payment.status)}</TableCell>
                       <TableCell className="font-mono text-sm">
                         {payment.payer.slice(0, 6)}...
                         {payment.payer.slice(-4)}
                       </TableCell>
                       <TableCell>
-                        {!payment.released ? (
+                        {payment.status === PaymentStatus.Staged ? (
                           <div className="flex space-x-2">
                             <Button
                               size="sm"
@@ -474,21 +493,46 @@ export default function AdminDashboard() {
                               }
                               disabled={isReleasePending || isReleaseConfirming}
                               className="bg-emerald-600 hover:bg-emerald-700"
+                              title="Release payment to institution"
                             >
                               {(isReleasePending || isReleaseConfirming) &&
-                              selectedPayment?.id === payment.id ? (
+                              selectedPayment?.id === payment.id &&
+                              actionType === "release" ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
                               ) : (
                                 <ArrowUpRight className="w-3 h-3" />
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                openActionDialog(payment, "refund")
+                              }
+                              disabled={isRefundPending || isRefundConfirming}
+                              className="bg-red-600 hover:bg-red-700"
+                              title="Refund payment to payer"
+                            >
+                              {(isRefundPending || isRefundConfirming) &&
+                              selectedPayment?.id === payment.id &&
+                              actionType === "refund" ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <ArrowDownLeft className="w-3 h-3" />
                               )}
                             </Button>
                           </div>
                         ) : (
                           <Badge
                             variant="secondary"
-                            className="bg-green-100 text-green-800"
+                            className={
+                              payment.status === PaymentStatus.Released
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }
                           >
-                            Released
+                            {payment.status === PaymentStatus.Released
+                              ? "Released"
+                              : "Refunded"}
                           </Badge>
                         )}
                       </TableCell>
@@ -555,6 +599,10 @@ export default function AdminDashboard() {
                   <span className="font-medium">
                     ${formatAmount(selectedPayment.amount)} USDC
                   </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-600">Status:</span>
+                  {getStatusBadge(selectedPayment.status)}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Payer:</span>
@@ -650,6 +698,9 @@ export default function AdminDashboard() {
           )}
         </DialogContent>
       </Dialog>
+      <Button onClick={() => console.log(contractPayments)}>
+        Debug Payments
+      </Button>
     </div>
   );
 }

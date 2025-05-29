@@ -24,7 +24,12 @@ import { Alert, AlertDescription } from "./alert";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useWriteContract, useReadContract, useAccount } from "wagmi";
+import {
+  useWriteContract,
+  useReadContract,
+  useAccount,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import {
   admin,
   contractABI,
@@ -33,6 +38,7 @@ import {
   stablecoinAddress,
 } from "@/app/abi";
 import Link from "next/link";
+import { waitForTransactionReceipt } from "viem/actions";
 
 const formSchema = z.object({
   university: z.string().min(1, "Please select a university"),
@@ -135,7 +141,17 @@ export const CTA = () => {
           args: [contractAddress, paymentAmount],
         });
 
-        console.log("Approval transaction:", approvalTx);
+        console.log("Approval receipt:", approvalTx);
+
+        const receipt = useWaitForTransactionReceipt({
+          hash: approvalTx,
+        });
+
+        if (!receipt) {
+          throw new Error("Approval transaction failed");
+        }
+        console.log("Approval successful, refetching allowance...");
+        await refetch();
       }
 
       const tx = await writeContractAsync({
