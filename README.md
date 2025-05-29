@@ -1,4 +1,4 @@
-![Edupay](./hero.png)
+![Edupay](./client/public/hero.png)
 
 # EduPay - Cross-Border Stablecoin Payment System
 
