@@ -22,6 +22,12 @@ contract TuitionEscrow {
     address public admin;
     IERC20 public stablecoin;
 
+    enum PaymentStatus {
+        Staged,
+        Released,
+        Refunded
+    }
+
     struct Payment {
         uint id;
         address payer;
@@ -29,6 +35,7 @@ contract TuitionEscrow {
         string institution;
         bool released;
         string invoiceRef;
+        PaymentStatus status;
     }
 
     uint public paymentId = 0;
@@ -50,7 +57,7 @@ contract TuitionEscrow {
     event PaymentReleased(uint id, string institution, address to);
     event AllowanceInsufficient(address payer, uint required, uint current);
 
-    function makePayment(
+    function deposit(
         uint amount,
         string calldata institution,
         string calldata invoiceRef
@@ -73,7 +80,8 @@ contract TuitionEscrow {
             amount,
             institution,
             false,
-            invoiceRef
+            invoiceRef,
+            PaymentStatus.Staged
         );
         emit PaymentMade(
             paymentId,
@@ -96,22 +104,24 @@ contract TuitionEscrow {
         return stablecoin.allowance(payer, address(this)) >= amount;
     }
 
-    function releasePayment(uint id, address to) external {
+    function release(uint id, address to) external {
         require(msg.sender == admin, "Not admin");
         Payment storage p = payments[id];
         require(!p.released, "Already released");
 
         p.released = true;
+        p.status = PaymentStatus.Released;
         stablecoin.transfer(to, p.amount);
 
         emit PaymentReleased(id, p.institution, to);
     }
 
-    function refundPayment(uint id) external {
+    function refund(uint id) external {
         Payment storage p = payments[id];
         require(msg.sender == p.payer, "Not payer");
         require(!p.released, "Already released");
 
+        p.status = PaymentStatus.Refunded;
         stablecoin.transfer(p.payer, p.amount);
         delete payments[id];
 
@@ -124,9 +134,5 @@ contract TuitionEscrow {
             allPayments[i] = payments[i];
         }
         return allPayments;
-    }
-
-    function getPayment(uint id) external view returns (Payment memory) {
-        return payments[id];
     }
 }

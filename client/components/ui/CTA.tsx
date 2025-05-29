@@ -118,63 +118,75 @@ export const CTA = () => {
     return () => clearInterval(interval);
   }, [refetch]);
 
+  const [approvalTxHash, setApprovalTxHash] = useState<
+    `0x${string}` | undefined
+  >(undefined);
+  const [shouldDeposit, setShouldDeposit] = useState(false);
+  const [formData, setFormData] = useState<FormData | null>(null);
+
+  const { isSuccess: isApprovalConfirmed } = useWaitForTransactionReceipt({
+    hash: approvalTxHash,
+  });
+
+  useEffect(() => {
+    if (isApprovalConfirmed && formData) {
+      handleDeposit(formData); // trigger deposit after approval confirms
+    }
+  }, [isApprovalConfirmed, formData]);
+
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
+    setFormData(data); // save form data for post-approval step
 
     try {
-      console.log({
-        ...data,
-        walletAddress: address,
-      });
-
       const paymentAmount = Number.parseFloat(data.amount) * 1e6;
-
-      console.log("Current allowance:", currentAllowance);
 
       if ((currentAllowance as bigint) < BigInt(paymentAmount)) {
         console.log("Insufficient allowance, requesting approval...");
 
-        const approvalTx = await writeContractAsync({
+        const approvalTxHash = await writeContractAsync({
           address: stablecoinAddress,
           abi: stablecoinABI,
           functionName: "approve",
           args: [contractAddress, paymentAmount],
         });
 
-        console.log("Approval receipt:", approvalTx);
-
-        const receipt = useWaitForTransactionReceipt({
-          hash: approvalTx,
-        });
-
-        if (!receipt) {
-          throw new Error("Approval transaction failed");
-        }
-        console.log("Approval successful, refetching allowance...");
-        await refetch();
+        console.log("Approval tx sent:", approvalTxHash);
+        setApprovalTxHash(approvalTxHash); // this triggers useWaitForTransactionReceipt
+      } else {
+        await handleDeposit(data); // skip approval, go straight to deposit
       }
-
-      const tx = await writeContractAsync({
-        address: contractAddress,
-        abi: contractABI,
-        functionName: "makePayment",
-        args: [paymentAmount, data.university, data.invoiceRef],
-      });
-
-      console.log("Payment transaction:", tx);
-
-      reset();
-      setIsOpen(false);
-      alert("Payment submitted successfully!");
     } catch (error) {
-      console.error("Payment failed:", error);
-      alert("Payment failed. Please try again.");
-    } finally {
+      console.error("Submission failed:", error);
+      alert("Transaction failed. Please try again.");
       setIsLoading(false);
-      reset();
     }
   };
 
+  const handleDeposit = async (data: FormData) => {
+    try {
+      const paymentAmount = Number.parseFloat(data.amount) * 1e6;
+
+      const paymentTxHash = await writeContractAsync({
+        address: contractAddress,
+        abi: contractABI,
+        functionName: "deposit",
+        args: [paymentAmount, data.university, data.invoiceRef],
+      });
+
+      console.log("Deposit transaction:", paymentTxHash);
+      alert("Payment submitted successfully!");
+      reset();
+      setIsOpen(false);
+    } catch (err) {
+      console.error("Deposit failed:", err);
+      alert("Deposit failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setApprovalTxHash(undefined);
+      setFormData(null);
+    }
+  };
   return (
     <div className="flex flex-col sm:flex-row gap-4 justify-center">
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

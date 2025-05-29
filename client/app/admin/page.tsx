@@ -205,7 +205,7 @@ export default function AdminDashboard() {
       releasePayment({
         address: contractAddress,
         abi: contractABI,
-        functionName: "releasePayment",
+        functionName: "release",
         args: [selectedPayment.id, releaseAddress as `0x${string}`],
       });
     } catch (error) {
@@ -216,6 +216,7 @@ export default function AdminDashboard() {
 
   const handleRefundPayment = async () => {
     if (!selectedPayment) return;
+    console.log("Refunding payment:", Number(selectedPayment.id));
 
     try {
       refundPayment({
@@ -559,7 +560,7 @@ export default function AdminDashboard() {
 
       {/* Action Confirmation Dialog */}
       <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-white opacity-100 shadow-xl rounded-lg">
           <DialogHeader>
             <DialogTitle>
               {actionType === "release" ? "Release Payment" : "Refund Payment"}
@@ -605,7 +606,9 @@ export default function AdminDashboard() {
                   {getStatusBadge(selectedPayment.status)}
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">Payer:</span>
+                  <span className="text-sm text-slate-600">
+                    Original Payer:
+                  </span>
                   <span className="font-mono text-sm">
                     {selectedPayment.payer}
                   </span>
@@ -698,9 +701,6 @@ export default function AdminDashboard() {
           )}
         </DialogContent>
       </Dialog>
-      <Button onClick={() => console.log(contractPayments)}>
-        Debug Payments
-      </Button>
     </div>
   );
 }
