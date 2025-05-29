@@ -10,7 +10,6 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  VenusAndMarsIcon,
 } from "lucide-react";
 import {
   Dialog,
@@ -37,8 +36,6 @@ import {
   stablecoinABI,
   stablecoinAddress,
 } from "@/app/abi";
-import Link from "next/link";
-import { waitForTransactionReceipt } from "viem/actions";
 
 const formSchema = z.object({
   university: z.string().min(1, "Please select a university"),
@@ -57,9 +54,6 @@ const formSchema = z.object({
 });
 
 type FormData = z.infer<typeof formSchema>;
-type currentAllowanceType = {
-  data: bigint;
-};
 
 export const CTA = () => {
   const { address } = useAccount();
@@ -121,7 +115,6 @@ export const CTA = () => {
   const [approvalTxHash, setApprovalTxHash] = useState<
     `0x${string}` | undefined
   >(undefined);
-  const [shouldDeposit, setShouldDeposit] = useState(false);
   const [formData, setFormData] = useState<FormData | null>(null);
 
   const { isSuccess: isApprovalConfirmed } = useWaitForTransactionReceipt({
@@ -130,8 +123,9 @@ export const CTA = () => {
 
   useEffect(() => {
     if (isApprovalConfirmed && formData) {
-      handleDeposit(formData); // trigger deposit after approval confirms
+      handleDeposit(formData);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isApprovalConfirmed, formData]);
 
   const onSubmit = async (data: FormData) => {

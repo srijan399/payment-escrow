@@ -16,7 +16,6 @@ import {
   DollarSign,
   University,
   FileText,
-  MoreHorizontal,
   ArrowUpRight,
   ArrowDownLeft,
   AlertTriangle,
@@ -55,18 +54,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { admin, contractABI, contractAddress } from "../abi";
 
 enum PaymentStatus {
-  Staged = 0, // Contract returns 0 for staged
-  Released = 1, // Contract returns 1 for released
-  Refunded = 2, // Contract returns 2 for refunded
+  Staged = 0,
+  Released = 1,
+  Refunded = 2,
 }
 
 interface ContractPayment {
@@ -76,7 +69,7 @@ interface ContractPayment {
   institution: string;
   released: boolean;
   invoiceRef: string;
-  status: number; // This is what the contract actually returns
+  status: number;
 }
 
 export default function AdminDashboard() {
@@ -93,7 +86,6 @@ export default function AdminDashboard() {
 
   const isAdmin = address === admin;
 
-  // Read contract data
   const {
     data: contractPayments,
     isLoading: paymentsLoading,
@@ -109,7 +101,6 @@ export default function AdminDashboard() {
     refetch: () => void;
   };
 
-  // Contract write functions
   const {
     writeContract: releasePayment,
     isPending: isReleasePending,
@@ -122,7 +113,6 @@ export default function AdminDashboard() {
     data: refundHash,
   } = useWriteContract();
 
-  // Wait for transaction confirmations
   const { isLoading: isReleaseConfirming, isSuccess: isReleaseSuccess } =
     useWaitForTransactionReceipt({
       hash: releaseHash,
@@ -133,10 +123,8 @@ export default function AdminDashboard() {
       hash: refundHash,
     });
 
-  // Convert contract payments to UI format
   const payments: ContractPayment[] = contractPayments || [];
 
-  // Filter payments based on search and status
   const filteredPayments = payments.filter((payment) => {
     const matchesSearch =
       !searchTerm ||
@@ -155,7 +143,6 @@ export default function AdminDashboard() {
     return matchesSearch && matchesStatus;
   });
 
-  // Handle transaction success
   useEffect(() => {
     if (isReleaseSuccess || isRefundSuccess) {
       refetchPayments();
@@ -216,14 +203,14 @@ export default function AdminDashboard() {
 
   const handleRefundPayment = async () => {
     if (!selectedPayment) return;
-    console.log("Refunding payment:", Number(selectedPayment.id));
+    console.log("Refunding payment:", selectedPayment.id);
 
     try {
       refundPayment({
         address: contractAddress,
         abi: contractABI,
-        functionName: "refundPayment",
-        args: [selectedPayment.id],
+        functionName: "refund",
+        args: [Number(selectedPayment.id)],
       });
     } catch (error) {
       console.error("Failed to refund payment:", error);
@@ -240,22 +227,17 @@ export default function AdminDashboard() {
     setIsActionDialogOpen(true);
   };
 
-  // Calculate statistics - using status instead of paymentStatus
   const stagedCount = payments.filter(
     (p) => p.status === PaymentStatus.Staged
   ).length;
   const completedCount = payments.filter(
     (p) => p.status === PaymentStatus.Released
   ).length;
-  const refundedCount = payments.filter(
-    (p) => p.status === PaymentStatus.Refunded
-  ).length;
   const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const stagedAmount = payments
     .filter((p) => p.status === PaymentStatus.Staged)
     .reduce((sum, p) => sum + Number(p.amount), 0);
 
-  // Format amounts (assuming 6 decimals for USDC)
   const formatAmount = (amount: bigint) => {
     return (Number(amount) / 1e6).toLocaleString();
   };
@@ -308,7 +290,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
-      {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -338,7 +319,6 @@ export default function AdminDashboard() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -399,7 +379,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Filters */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Payment Management</CardTitle>
@@ -434,7 +413,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Payments Table */}
         <Card>
           <CardContent className="p-0">
             {paymentsLoading ? (
@@ -558,7 +536,6 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Action Confirmation Dialog */}
       <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
         <DialogContent className="bg-white opacity-100 shadow-xl rounded-lg">
           <DialogHeader>
@@ -628,7 +605,7 @@ export default function AdminDashboard() {
                   />
                   <p className="text-xs text-slate-500">
                     Enter the address where the funds should be sent (typically
-                    the institution's wallet)
+                    the institution&apos;s wallet)
                   </p>
                 </div>
               )}

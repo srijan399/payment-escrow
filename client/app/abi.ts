@@ -152,56 +152,23 @@ export const contractABI = [
     inputs: [
       {
         internalType: "uint256",
-        name: "id",
+        name: "amount",
         type: "uint256",
       },
-    ],
-    name: "getPayment",
-    outputs: [
       {
-        components: [
-          {
-            internalType: "uint256",
-            name: "id",
-            type: "uint256",
-          },
-          {
-            internalType: "address",
-            name: "payer",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "amount",
-            type: "uint256",
-          },
-          {
-            internalType: "string",
-            name: "institution",
-            type: "string",
-          },
-          {
-            internalType: "bool",
-            name: "released",
-            type: "bool",
-          },
-          {
-            internalType: "string",
-            name: "invoiceRef",
-            type: "string",
-          },
-          {
-            internalType: "enum TuitionEscrow.PaymentStatus",
-            name: "status",
-            type: "uint8",
-          },
-        ],
-        internalType: "struct TuitionEscrow.Payment",
-        name: "",
-        type: "tuple",
+        internalType: "string",
+        name: "institution",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "invoiceRef",
+        type: "string",
       },
     ],
-    stateMutability: "view",
+    name: "deposit",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -279,29 +246,6 @@ export const contractABI = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "institution",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "invoiceRef",
-        type: "string",
-      },
-    ],
-    name: "makePayment",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
     inputs: [],
     name: "paymentId",
     outputs: [
@@ -371,7 +315,7 @@ export const contractABI = [
         type: "uint256",
       },
     ],
-    name: "refundPayment",
+    name: "refund",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -389,7 +333,7 @@ export const contractABI = [
         type: "address",
       },
     ],
-    name: "releasePayment",
+    name: "release",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -409,7 +353,7 @@ export const contractABI = [
   },
 ];
 
-export const contractAddress = "0x3E4c1Df312B7dF41a2224fE1C31eEaB41a1ECDE0";
+export const contractAddress = "0xA65CB7b99f66c82d72A0eBd038874945D025cEaD";
 
 export const stablecoinAddress = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 export const stablecoinABI = [

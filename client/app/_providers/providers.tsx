@@ -6,9 +6,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import {
   RainbowKitProvider,
   darkTheme,
-  lightTheme,
   connectorsForWallets,
-  midnightTheme,
 } from "@rainbow-me/rainbowkit";
 import {
   rainbowWallet,
@@ -41,18 +39,11 @@ export default function Providers(props: {
   const [config] = useState(() => getConfig(connectors));
   const [queryClient] = useState(() => new QueryClient());
 
-  const selectedTheme = lightTheme({
-    borderRadius: "small",
-    fontStack: "system",
-    overlayBlur: "small",
-  });
-
   return (
     <WagmiProvider config={config} initialState={props.initialState}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           initialChain={11155111}
-          // theme={selectedTheme}
           coolMode
           modalSize="wide"
           theme={darkTheme({

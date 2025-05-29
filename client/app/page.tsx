@@ -285,9 +285,9 @@ export default function LandingPage() {
                 </div>
               </div>
               <blockquote className="text-slate-700 italic mb-4">
-                "EduPay has revolutionized how we receive international tuition
-                payments. What used to take weeks now happens in minutes, and
-                our students love the transparency."
+                &quot;EduPay has revolutionized how we receive international
+                tuition payments. What used to take weeks now happens in
+                minutes, and our students love the transparency.&quot;
               </blockquote>
               <div className="flex text-emerald-600">
                 {[...Array(5)].map((_, i) => (
