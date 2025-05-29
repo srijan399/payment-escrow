@@ -9,6 +9,13 @@ interface IERC20 {
     ) external returns (bool);
 
     function transfer(address to, uint amount) external returns (bool);
+
+    function approve(address spender, uint amount) external returns (bool);
+
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint);
 }
 
 contract TuitionEscrow {
@@ -16,10 +23,12 @@ contract TuitionEscrow {
     IERC20 public stablecoin;
 
     struct Payment {
+        uint id;
         address payer;
         uint amount;
         string institution;
         bool released;
+        string invoiceRef;
     }
 
     uint public paymentId = 0;
@@ -30,14 +39,61 @@ contract TuitionEscrow {
         stablecoin = IERC20(_stablecoin);
     }
 
-    event PaymentMade(uint id, address payer, uint amount, string institution);
+    event PaymentMade(
+        uint id,
+        address payer,
+        uint amount,
+        string institution,
+        string invoiceRef
+    );
+    event PaymentRefunded(uint id, address payer);
     event PaymentReleased(uint id, string institution, address to);
+    event AllowanceInsufficient(address payer, uint required, uint current);
 
-    function makePayment(uint amount, string calldata institution) external {
-        stablecoin.transferFrom(msg.sender, address(this), amount);
-        payments[paymentId] = Payment(msg.sender, amount, institution, false);
-        emit PaymentMade(paymentId, msg.sender, amount, institution);
+    function makePayment(
+        uint amount,
+        string calldata institution,
+        string calldata invoiceRef
+    ) external {
+        uint currentAllowance = stablecoin.allowance(msg.sender, address(this));
+
+        if (currentAllowance < amount) {
+            emit AllowanceInsufficient(msg.sender, amount, currentAllowance);
+            revert("Insufficient allowance. Please approve spending first.");
+        }
+
+        require(
+            stablecoin.transferFrom(msg.sender, address(this), amount),
+            "Transfer failed"
+        );
+
+        payments[paymentId] = Payment(
+            paymentId,
+            msg.sender,
+            amount,
+            institution,
+            false,
+            invoiceRef
+        );
+        emit PaymentMade(
+            paymentId,
+            msg.sender,
+            amount,
+            institution,
+            invoiceRef
+        );
         paymentId++;
+    }
+
+    function checkAllowance(address payer) external view returns (uint) {
+        return stablecoin.allowance(payer, address(this));
+    }
+
+    function isAllowanceSufficient(
+        address payer,
+        uint amount
+    ) external view returns (bool) {
+        return stablecoin.allowance(payer, address(this)) >= amount;
     }
 
     function releasePayment(uint id, address to) external {
@@ -49,5 +105,28 @@ contract TuitionEscrow {
         stablecoin.transfer(to, p.amount);
 
         emit PaymentReleased(id, p.institution, to);
+    }
+
+    function refundPayment(uint id) external {
+        Payment storage p = payments[id];
+        require(msg.sender == p.payer, "Not payer");
+        require(!p.released, "Already released");
+
+        stablecoin.transfer(p.payer, p.amount);
+        delete payments[id];
+
+        emit PaymentRefunded(id, p.payer);
+    }
+
+    function getPayments() external view returns (Payment[] memory) {
+        Payment[] memory allPayments = new Payment[](paymentId);
+        for (uint i = 0; i < paymentId; i++) {
+            allPayments[i] = payments[i];
+        }
+        return allPayments;
+    }
+
+    function getPayment(uint id) external view returns (Payment memory) {
+        return payments[id];
     }
 }
